@@ -1,0 +1,98 @@
+{% load static %}
+{% block content %}
+    <style>
+        .registration-container {
+            margin: 100px auto;
+            max-width: 700px;
+        }
+
+        .registration-form {
+            width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button[type="submit"] {
+            display: block;
+            margin: 0 auto;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px; /* increase border-radius to make it more oval */
+            background-color: #7386D5;; /* change background color to #7386D5 */
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+          }
+          
+          button[type="submit"]:hover {
+            background-color: #5D6BB2; /* darken the background color on hover */
+          }
+    </style>
+    <div class="registration-container">
+        <h2 style="text-align: center;">Sign up to Project School</h2>
+        <br>
+        <form class="registration-form" method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="{{ form.username.id_for_label }}">Username:</label>
+                {{ form.username }}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.first_name.id_for_label }}">First Name:</label>
+                {{ form.first_name }}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.last_name.id_for_label }}">Last Name:</label>
+                {{ form.last_name }}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.email.id_for_label }}">Email:</label>
+                {{ form.email }}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.password1.id_for_label }}">Password:</label>
+                {{ form.password1 }}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.password2.id_for_label }}">Confirm Password:</label>
+                {{ form.password2 }}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.phone.id_for_label }}">Phone:</label>
+                {{ form.phone }}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.address.id_for_label }}">Address:</label>
+                {{ form.address }}
+            </div>
+            <div class="form-group">
+                <label for="{{ form.newsletter.id_for_label }}">Subscribe to Newsletter:</label>
+                {{ form.newsletter }}
+            </div>
+            <button type="submit" class="btn btn-primary">Register</button>
+        </form>
+    </div>
+{% endblock %}

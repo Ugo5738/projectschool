@@ -1,0 +1,93 @@
+{% extends 'mentor/mentor_base.html' %} 
+{% load static %}
+{% block content %}
+
+  <!-- ======= Hero Section ======= -->
+  <section id="hero" class="d-flex justify-content-center align-items-center">
+    <div class="container position-relative" data-aos="zoom-in" data-aos-delay="100">
+      <h1>Learn Skills,<br>Deploy Your Skills</h1>
+      <h2>Learn by doing... With focus on Project-Based Learning take on practical projects that give you the edge."</h2>
+      <a href="courses.html" class="btn-get-started">Explore Courses</a>
+    </div>
+  </section><!-- End Hero -->
+
+  <main id="main">
+
+    <!-- ======= Popular Courses Section ======= -->
+    <section id="popular-courses" class="courses">
+      <div class="container" data-aos="fade-up">
+
+        <div class="section-title">
+          <h2>Courses</h2>
+          <p>Popular Courses</p>
+        </div>
+
+        <div class="row" data-aos="zoom-in" data-aos-delay="100">
+          {% for course in courses %}
+            <div class="col-lg-4 col-md-6 d-flex align-items-stretch">
+              <div class="course-item">
+                {% if course.image %}
+                  <img src="{{ course.image.url }}" class="img-fluid" alt="{{ course.title }}">
+                {% endif %}
+                <div class="course-content">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4>{{ course.program.title }}</h4>
+                    <p class="price">${{ course.price }}</p>
+                  </div>
+
+                  <h3><a href="{% url 'course_outline' slug=course.slug %}">{{ course.title }}</a></h3>
+                  <p>{{ course.get_part_summary }}</p>
+                  <div class="trainer d-flex justify-content-between align-items-center">
+                    <div class="trainer-profile d-flex align-items-center">
+                      <img src="{{ course.get_allocated_lecturer.picture.url }}" class="img-fluid" alt="{{ course.get_allocated_lecturer.first_name }}">
+                      <span>{{ course.get_allocated_lecturer.first_name }}</span>
+                    </div>
+                    <div class="trainer-rank d-flex align-items-center">
+                      <i class="bx bx-user"></i>&nbsp;50
+                      &nbsp;&nbsp;
+                      <i class="bx bx-heart"></i>&nbsp;65
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div> <!-- End Course Item-->
+          {% endfor %}
+
+        </div>
+
+      </div>
+    </section><!-- End Popular Courses Section -->
+
+    <!-- ======= Trainers Section ======= -->
+    <section id="trainers" class="trainers">
+      <div class="container" data-aos="fade-up">
+
+        <div class="row" data-aos="zoom-in" data-aos-delay="100">
+          {% for lecturer in lecturers %}
+            <div class="col-lg-4 col-md-6 d-flex align-items-stretch">
+              <div class="member">
+                <img src="{% static 'mentor/assets/img/trainers/trainer-1.jpg' %}" class="img-fluid" alt="">
+                <div class="member-content">
+                  <h4>{{ lecturer.get_full_name }}</h4>
+                  <span>{{ lecturer.lecturer.get_courses }}</span>
+                  <p>
+                    {{ lecturer.lecturer.description }}
+                  </p>
+                  <div class="social">
+                    <a href=""><i class="bi bi-twitter"></i></a>
+                    <a href=""><i class="bi bi-facebook"></i></a>
+                    <a href=""><i class="bi bi-instagram"></i></a>
+                    <a href=""><i class="bi bi-linkedin"></i></a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+      </div>
+    </section><!-- End Trainers Section -->
+
+  </main><!-- End #main -->
+
+{% endblock content %}
