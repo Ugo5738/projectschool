@@ -1,7 +1,3 @@
-from datetime import datetime, timedelta
-
-import jwt
-from course.models import Course, Program
 from django.conf import settings
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser, PermissionsMixin
@@ -12,21 +8,7 @@ from django.utils.translation import gettext_lazy as _
 from helpers.models import TrackingModel
 from PIL import Image
 
-# LEVEL_COURSE = "Level course"
-BEGINNER = "Beginner"
-INTERMEDIATE = "Intermediate"
-ADVANCED = "Advanced"
-
-LEVEL = (
-    # (LEVEL_COURSE, "Level course"),
-    (BEGINNER, "Beginner"),
-    (INTERMEDIATE, "Intermediate"),
-    (ADVANCED, "Advanced")
-)
-
 GENDER = (('M', 'Male'), ('F', 'Female'))
-LEARNING_STYLES = [('visual', 'Visual'), ('auditory', 'Auditory'), ('kinesthetic', 'Kinesthetic')]
-
 
 class CustomUserManager(BaseUserManager):
     def _create_user(self, username, email, password, **extra_fields):
@@ -141,80 +123,3 @@ class User(AbstractUser, TrackingModel):
     class Meta:
         verbose_name = 'User'
         verbose_name_plural = "Users"
-
-
-class StudentManager(models.Manager):
-    def search(self, query=None):
-        qs = self.get_queryset()
-        if query is not None:
-            or_lookup = (Q(level__icontains=query) | 
-                         Q(department__icontains=query)
-                        )
-            qs = qs.filter(or_lookup).distinct() # distinct() is often necessary with Q lookups
-        return qs
-
-
-class TechSkill(TrackingModel):
-    name = models.CharField(max_length=100)
-    
-    def __str__(self):
-        return self.name
-
-
-class Project(models.Model):
-    title = models.CharField(max_length=100)
-    description = models.TextField()
-    start_date = models.DateField()
-    end_date = models.DateField()
-
-    def __str__(self):
-        return self.title
-    
-
-class Student(TrackingModel):
-    student = models.OneToOneField(
-        User, 
-        on_delete=models.CASCADE, 
-        related_name='student_profile'
-    )
-    # program = models.ForeignKey(Program, on_delete=models.CASCADE, null=True)
-    goals = models.TextField(blank=True, null=True)
-    learning_style = models.CharField(choices=LEARNING_STYLES, max_length=50)
-    availability = models.CharField(max_length=50, blank=True, null=True)   
-    tech_skills = models.ManyToManyField(TechSkill, related_name='tech_skills', blank=True)
-    projects = models.ManyToManyField(Project, related_name='projects', blank=True)
-    
-    objects = StudentManager()
-
-    def __str__(self):
-        return self.student.get_full_name
-
-    def get_absolute_url(self):
-        return reverse('profile_single', kwargs={'id': self.id})
-
-    def delete(self, *args, **kwargs):
-        self.student.delete()
-        super().delete(*args, **kwargs)
-
-
-class Lecturer(TrackingModel):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='lecturer')
-    credentials = models.TextField()
-    teaching_experience = models.CharField(max_length=150)
-    description = models.TextField()
-
-    def __str__(self):
-        return self.user.get_full_name
-
-    # should get this working asap
-    # def get_courses(self):
-    #     return Course.objects.filter(courseallocation__lecturer=self)
-
-
-class Enrollment(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    program = models.ForeignKey(Program, on_delete=models.CASCADE)
-
-    def __str__(self):
-        return self.student.student.get_full_name

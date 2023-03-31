@@ -39,7 +39,8 @@ THIRD_PARTY_APPS = [
 CUSTOM_APPS = [
     'accounts',
     'course',
-    'sessionmanagement',
+    'membership',
+    'project',
 ]
 
 INSTALLED_APPS = DEFAULT_APPS + CUSTOM_APPS + THIRD_PARTY_APPS

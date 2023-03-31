@@ -21,9 +21,14 @@ schema_view = get_schema_view(
 
 default_urlpatterns = [
     path("admin/", admin.site.urls),
-    path('api/auth/', include('accounts.urls')),
 ]
 
+custom_urlpatterns = [
+   path('api/auth/', include('accounts.urls')),
+   path('api/member/', include('membership.urls')),
+   path('api/course/', include('course.urls')),
+   path('api/project/', include('project.urls')),
+]
 
 swagger_urlpatterns = [
    path('swagger.json', schema_view.without_ui(cache_timeout=0), name='schema-json'),
@@ -31,4 +36,4 @@ swagger_urlpatterns = [
    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]
 
-urlpatterns = default_urlpatterns + swagger_urlpatterns
+urlpatterns = default_urlpatterns + custom_urlpatterns + swagger_urlpatterns

@@ -1,104 +1,104 @@
-from course.models import (Course, CourseAllocation, Program, Upload,
-                           UploadVideo)
-from django import forms
-from django.conf import settings
+# from course.models import (Course, CourseAllocation, Program, Upload,
+#                            UploadVideo)
+# from django import forms
+# from django.conf import settings
 
-User = settings.AUTH_USER_MODEL
+# User = settings.AUTH_USER_MODEL
 
-class ProgramForm(forms.ModelForm):
-    class Meta:
-        model = Program
-        fields = '__all__'
+# class ProgramForm(forms.ModelForm):
+#     class Meta:
+#         model = Program
+#         fields = '__all__'
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['title'].widget.attrs.update({'class': 'form-control'})
-        self.fields['summary'].widget.attrs.update({'class': 'form-control'})
-
-
-class CourseAddForm(forms.ModelForm):
-    class Meta:
-        model = Course
-        fields = '__all__'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['title'].widget.attrs.update({'class': 'form-control'})
-        self.fields['code'].widget.attrs.update({'class': 'form-control'})
-        self.fields['image'].widget.attrs.update({'class': 'form-control'})
-        self.fields['price'].widget.attrs.update({'class': 'form-control'})
-        # self.fields['courseUnit'].widget.attrs.update({'class': 'form-control'})
-        self.fields['credit'].widget.attrs.update({'class': 'form-control'})
-        self.fields['summary'].widget.attrs.update({'class': 'form-control'})
-        self.fields['program'].widget.attrs.update({'class': 'form-control'})
-        self.fields['level'].widget.attrs.update({'class': 'form-control'})
-        self.fields['year'].widget.attrs.update({'class': 'form-control'})
-        self.fields['semester'].widget.attrs.update({'class': 'form-control'})
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.fields['title'].widget.attrs.update({'class': 'form-control'})
+#         self.fields['summary'].widget.attrs.update({'class': 'form-control'})
 
 
-class CourseAllocationForm(forms.ModelForm):
-    courses = forms.ModelMultipleChoiceField(
-        queryset=Course.objects.all().order_by('level'),
-        widget=forms.CheckboxSelectMultiple(attrs={'class': 'browser-default checkbox'}),
-        required=True
-    )
-    lecturer = forms.ModelChoiceField(
-        queryset=User.objects.filter(is_lecturer=True),
-        widget=forms.Select(attrs={'class': 'browser-default custom-select'}),
-        label="lecturer",
-    )
+# class CourseAddForm(forms.ModelForm):
+#     class Meta:
+#         model = Course
+#         fields = '__all__'
 
-    class Meta:
-        model = CourseAllocation
-        fields = ['lecturer', 'courses']
-
-    def __init__(self, *args, **kwargs):
-        user = kwargs.pop('user')
-        super(CourseAllocationForm, self).__init__(*args, **kwargs)
-        self.fields['lecturer'].queryset = User.objects.filter(is_lecturer=True)
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.fields['title'].widget.attrs.update({'class': 'form-control'})
+#         self.fields['code'].widget.attrs.update({'class': 'form-control'})
+#         self.fields['image'].widget.attrs.update({'class': 'form-control'})
+#         self.fields['price'].widget.attrs.update({'class': 'form-control'})
+#         # self.fields['courseUnit'].widget.attrs.update({'class': 'form-control'})
+#         self.fields['credit'].widget.attrs.update({'class': 'form-control'})
+#         self.fields['summary'].widget.attrs.update({'class': 'form-control'})
+#         self.fields['program'].widget.attrs.update({'class': 'form-control'})
+#         self.fields['level'].widget.attrs.update({'class': 'form-control'})
+#         self.fields['year'].widget.attrs.update({'class': 'form-control'})
+#         self.fields['semester'].widget.attrs.update({'class': 'form-control'})
 
 
-class EditCourseAllocationForm(forms.ModelForm):
-    courses = forms.ModelMultipleChoiceField(
-        queryset=Course.objects.all().order_by('level'),
-        widget=forms.CheckboxSelectMultiple,
-        required=True
-    )
-    lecturer = forms.ModelChoiceField(
-        queryset=User.objects.filter(is_lecturer=True),
-        widget=forms.Select(attrs={'class': 'browser-default custom-select'}),
-        label="lecturer",
-    )
+# class CourseAllocationForm(forms.ModelForm):
+#     courses = forms.ModelMultipleChoiceField(
+#         queryset=Course.objects.all().order_by('level'),
+#         widget=forms.CheckboxSelectMultiple(attrs={'class': 'browser-default checkbox'}),
+#         required=True
+#     )
+#     lecturer = forms.ModelChoiceField(
+#         queryset=User.objects.filter(is_lecturer=True),
+#         widget=forms.Select(attrs={'class': 'browser-default custom-select'}),
+#         label="lecturer",
+#     )
 
-    class Meta:
-        model = CourseAllocation
-        fields = ['lecturer', 'courses']
+#     class Meta:
+#         model = CourseAllocation
+#         fields = ['lecturer', 'courses']
 
-    def __init__(self, *args, **kwargs):
-        #    user = kwargs.pop('user')
-        super(EditCourseAllocationForm, self).__init__(*args, **kwargs)
-        self.fields['lecturer'].queryset = User.objects.filter(is_lecturer=True)
-
-
-# Upload files to specific course
-class UploadFormFile(forms.ModelForm):
-    class Meta:
-        model = Upload
-        fields = ('title', 'file', 'course',)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['title'].widget.attrs.update({'class': 'form-control'})
-        self.fields['file'].widget.attrs.update({'class': 'form-control'})
+#     def __init__(self, *args, **kwargs):
+#         user = kwargs.pop('user')
+#         super(CourseAllocationForm, self).__init__(*args, **kwargs)
+#         self.fields['lecturer'].queryset = User.objects.filter(is_lecturer=True)
 
 
-# Upload video to specific course
-class UploadFormVideo(forms.ModelForm):
-    class Meta:
-        model = UploadVideo
-        fields = ('title', 'video', 'course',)
+# class EditCourseAllocationForm(forms.ModelForm):
+#     courses = forms.ModelMultipleChoiceField(
+#         queryset=Course.objects.all().order_by('level'),
+#         widget=forms.CheckboxSelectMultiple,
+#         required=True
+#     )
+#     lecturer = forms.ModelChoiceField(
+#         queryset=User.objects.filter(is_lecturer=True),
+#         widget=forms.Select(attrs={'class': 'browser-default custom-select'}),
+#         label="lecturer",
+#     )
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['title'].widget.attrs.update({'class': 'form-control'})
-        self.fields['video'].widget.attrs.update({'class': 'form-control'})
+#     class Meta:
+#         model = CourseAllocation
+#         fields = ['lecturer', 'courses']
+
+#     def __init__(self, *args, **kwargs):
+#         #    user = kwargs.pop('user')
+#         super(EditCourseAllocationForm, self).__init__(*args, **kwargs)
+#         self.fields['lecturer'].queryset = User.objects.filter(is_lecturer=True)
+
+
+# # Upload files to specific course
+# class UploadFormFile(forms.ModelForm):
+#     class Meta:
+#         model = Upload
+#         fields = ('title', 'file', 'course',)
+
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.fields['title'].widget.attrs.update({'class': 'form-control'})
+#         self.fields['file'].widget.attrs.update({'class': 'form-control'})
+
+
+# # Upload video to specific course
+# class UploadFormVideo(forms.ModelForm):
+#     class Meta:
+#         model = UploadVideo
+#         fields = ('title', 'video', 'course',)
+
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.fields['title'].widget.attrs.update({'class': 'form-control'})
+#         self.fields['video'].widget.attrs.update({'class': 'form-control'})

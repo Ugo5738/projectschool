@@ -1,45 +1,23 @@
-from course.utils import *
-from django.conf import settings
 from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.db.models import Q
-from django.db.models.signals import pre_save
 from django.urls import reverse
-from sessionmanagement.models import Session
+from django.utils.text import slugify
+from helpers.models import TrackingModel
+from membership.models import Instructor, Student
+from project.models import Project, TechSkill
 
-User = settings.AUTH_USER_MODEL
+LEVEL_CHOICES = [
+        ('beginner', 'Beginner'),
+        ('intermediate', 'Intermediate'),
+        ('advanced', 'Advanced'),
+    ]
 
-YEARS = (
-        (1, '1'),
-        (2, '2'),
-        (3, '3'),
-        (4, '4'),
-        (4, '5'),
-        (4, '6'),
+TYPE_CHOICES = (
+        ('V', 'Video'),
+        ('D', 'Document'),
     )
-
-# LEVEL_COURSE = "Level course"
-BEGINNER = "Beginner"
-INTERMEDIATE = "Intermediate"
-ADVANCED = "Advanced"
-
-LEVEL = (
-    # (LEVEL_COURSE, "Level course"),
-    (BEGINNER, "Beginner"),
-    (INTERMEDIATE, "Intermediate"),
-    (ADVANCED, "Advanced")
-)
-
-FIRST = "First"
-SECOND = "Second"
-THIRD = "Third"
-
-SEMESTER = (
-    (FIRST, "First"),
-    (SECOND, "Second"),
-    (THIRD, "Third"),
-)
-
+    
 
 # Create your models here.
 class ProgramManager(models.Manager):
@@ -53,17 +31,20 @@ class ProgramManager(models.Manager):
         return qs
 
 
-class Program(models.Model):
+class Program(TrackingModel):
     title = models.CharField(max_length=150, unique=True)
-    summary = models.TextField(null=True, blank=True)
-
-    # for payment
+    description = models.TextField(null=True, blank=True)
+    image = models.ImageField(upload_to='program_images/', blank=True)
+    is_active = models.BooleanField(default=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    duration = models.PositiveIntegerField(help_text='Duration in weeks')
+    
     objects = ProgramManager()
 
     def __str__(self):
         return self.title
 
+    # might remove these
     def get_absolute_url(self):
         return reverse('program_detail', kwargs={'pk': self.pk})
     
@@ -84,119 +65,158 @@ class CourseManager(models.Manager):
         return qs
 
 
-class Course(models.Model):
-    slug = models.SlugField(blank=True, unique=True)
-    title = models.CharField(max_length=200, null=True)
-    image = models.ImageField(upload_to='course_images/', null=True, blank=True)
-    code = models.CharField(max_length=200, unique=True, null=True)
-    credit = models.IntegerField(null=True, default=0)
-    summary = models.TextField(max_length=1024, blank=True, null=True)
-    program = models.ForeignKey(Program, on_delete=models.CASCADE)
-    level = models.CharField(max_length=25, choices=LEVEL, null=True)
-    year = models.IntegerField(choices=YEARS, default=0)
-    semester = models.CharField(choices=SEMESTER, max_length=200)
-    
-    # for payment
+class CourseMetadata(models.Model):
+    level = models.CharField(max_length=25, choices=LEVEL_CHOICES)
+    rating = models.DecimalField(max_digits=3, decimal_places=2, default=0)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    certificate = models.BooleanField(default=False)
+    
+    class Meta:
+        verbose_name_plural = 'Course metadata'
+
+
+class CourseContent(models.Model):
+    syllabus = models.TextField(blank=True, null=True)
+    prerequisites = models.TextField(blank=True)
+    
+    class Meta:
+        verbose_name_plural = 'Course content'
+
+
+class CourseDetails(models.Model):
+    image = models.ImageField(upload_to='course_images/', null=True, blank=True)
+    duration = models.PositiveIntegerField(null=True, blank=True)
+    enrollment_count = models.PositiveIntegerField(default=0)
+    enrollment_deadline = models.DateField(null=True, blank=True)
+
+    instructor = models.ForeignKey(Instructor, on_delete=models.CASCADE)
+    program = models.ForeignKey(Program, on_delete=models.CASCADE)
+    skills = models.ForeignKey(TechSkill, on_delete=models.CASCADE)
+    projects = models.ForeignKey(Project, on_delete=models.CASCADE)
+    
+    class Meta:
+        verbose_name_plural = 'Course details'
+
+
+class Course(TrackingModel):
+    title = models.CharField(max_length=200, null=True)
+    slug = models.SlugField(blank=True, unique=True)
+    description = models.TextField(blank=True, null=True)
+    is_published = models.BooleanField(default=False)
+    active = models.BooleanField(default=False)
+    
+    metadata = models.OneToOneField(CourseMetadata, on_delete=models.CASCADE)
+    content = models.OneToOneField(CourseContent, on_delete=models.CASCADE)
+    details = models.OneToOneField(CourseDetails, on_delete=models.CASCADE)
     
     objects = CourseManager()
 
     def __str__(self):
         return "{0} ({1})".format(self.title, self.code)
 
+    # might remove these
     def get_absolute_url(self):
         return reverse('course_detail', kwargs={'slug': self.slug})
     
     def get_part_summary(self):
         return f"{self.summary[:200]}..."
     
-    def get_allocated_lecturer(self):
-        allocations = self.allocated_course.select_related('lecturer')
-        if allocations.exists():
-            return allocations.first().lecturer
-        return None
-    
-    @property
-    def is_current_semester(self):
-        from sessionmanagement.models import Semester
-        current_semester = Semester.objects.get(is_current_semester=True)
-
-        if self.semester == current_semester.semester:
-            return True
-        else:
-            return False
+    def save(self, *args, **kwargs):
+        self.slug = slugify(self.title)
+        super().save(*args, **kwargs)
 
 
-def course_pre_save_receiver(sender, instance, *args, **kwargs):
-    if not instance.slug:
-        instance.slug = unique_slug_generator(instance)
-
-pre_save.connect(course_pre_save_receiver, sender=Course)
-
-
-class CourseAllocation(models.Model):
-    lecturer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='allocated_lecturer')
-    courses = models.ManyToManyField(Course, related_name='allocated_course')
-    session = models.ForeignKey(Session, on_delete=models.CASCADE, blank=True, null=True)
+class Quiz(models.Model):
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    total_marks = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return self.lecturer.get_full_name
-
-    def get_absolute_url(self):
-        return reverse('edit_allocated_course', kwargs={'pk': self.pk})
+        return self.title
 
 
-class Upload(models.Model):
-    title = models.CharField(max_length=100)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    file = models.FileField(upload_to='course_files/', validators=[FileExtensionValidator(['pdf', 'docx', 'doc', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', '7zip'])])
-    updated_date = models.DateTimeField(auto_now=True, auto_now_add=False, null=True)
-    upload_time = models.DateTimeField(auto_now=False, auto_now_add=True, null=True)
+class Question(models.Model):
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
+    text = models.TextField()
+    marks = models.PositiveIntegerField(default=1)
 
     def __str__(self):
-        return str(self.file)[6:]
-
-    def get_extension_short(self):
-        ext = str(self.file).split(".")
-        ext = ext[len(ext)-1]
-
-        if ext == 'doc' or ext == 'docx':
-            return 'word'
-        elif ext == 'pdf':
-            return 'pdf'
-        elif ext == 'xls' or ext == 'xlsx':
-            return 'excel'
-        elif ext == 'ppt' or ext == 'pptx':
-            return 'powerpoint'
-        elif ext == 'zip' or ext == 'rar' or ext == '7zip':
-            return 'archive'
-
-    def delete(self, *args, **kwargs):
-        self.file.delete()
-        super().delete(*args, **kwargs)
+        return self.text
 
 
-class UploadVideo(models.Model):
-    title = models.CharField(max_length=100)
-    slug = models.SlugField(blank=True, unique=True)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    video = models.FileField(upload_to='course_videos/', validators=[FileExtensionValidator(['mp4', 'mkv', 'wmv', '3gp', 'f4v', 'avi', 'mp3'])])
-    summary = models.TextField(null=True, blank=True)
-    timestamp = models.DateTimeField(auto_now=False, auto_now_add=True, null=True)
+class Answer(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    text = models.CharField(max_length=200)
+    is_correct = models.BooleanField(default=False)
 
     def __str__(self):
-        return str(self.title)
+        return self.text
 
+
+class Module(TrackingModel):
+    title = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=200, unique=True, blank=True)
+    description = models.TextField(blank=True)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='modules')
+    order = models.PositiveIntegerField(default=0)
+    duration = models.IntegerField(blank=True, null=True)
+    is_published = models.BooleanField(default=False)
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, blank=True, null=True)
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.title)
+        super(Module, self).save(*args, **kwargs)
+
+
+class Lesson(TrackingModel):
+    module = models.ForeignKey(Module, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    content = models.TextField(blank=True)
+    order = models.PositiveIntegerField(default=0)
+    duration = models.PositiveIntegerField(null=True, blank=True)
+    is_published = models.BooleanField(default=False)
+
+
+class Video(TrackingModel):
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    video_file = models.FileField(upload_to='videos/', validators=[FileExtensionValidator(['mp4', 'mkv', 'wmv', '3gp', 'f4v', 'avi', 'mp3'])])
+
+    # not sure this is needed
     def get_absolute_url(self):
         return reverse('video_single', kwargs={'slug': self.course.slug, 'video_slug': self.slug})
 
-    def delete(self, *args, **kwargs):
-        self.video.delete()
-        super().delete(*args, **kwargs)
+    def __str__(self):
+        return self.title
+    
 
+class File(TrackingModel):
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    file = models.FileField(upload_to='files/', validators=[FileExtensionValidator(['pdf', 'docx', 'doc', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', '7zip'])])
 
-def video_pre_save_receiver(sender, instance, *args, **kwargs):
-    if not instance.slug:
-        instance.slug = unique_slug_generator(instance)
+    def __str__(self):
+        return self.title
 
-pre_save.connect(video_pre_save_receiver, sender=UploadVideo)
+        
+class Enrollment(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True)
+    program = models.ForeignKey(Program, on_delete=models.CASCADE, null=True, blank=True)
+    date_enrolled = models.DateTimeField(auto_now_add=True)
+    date_completed = models.DateTimeField(null=True, blank=True)
+    is_completed = models.BooleanField(default=False)
+    progress = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
+    grade = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        unique_together = ('student', 'course', 'program',)
