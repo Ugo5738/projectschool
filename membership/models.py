@@ -60,9 +60,6 @@ class Instructor(TrackingModel):
     def __str__(self):
         return self.instructor.get_full_name
     
-    def get_absolute_url(self):
-        return reverse('instructor_profile', kwargs={'id': self.id})
-
     def delete(self, *args, **kwargs):
         self.instructor.delete()
         super().delete(*args, **kwargs)

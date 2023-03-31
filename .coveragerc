@@ -1,5 +1,5 @@
 [run]
-source=accounts/,course/,result/,sessionmanagement/,
+source=accounts/,course/,membership/,
 omit=
     venv
     */migrations/*

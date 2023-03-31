@@ -19,13 +19,12 @@ TYPE_CHOICES = (
     )
     
 
-# Create your models here.
 class ProgramManager(models.Manager):
     def search(self, query=None):
         qs = self.get_queryset()
         if query is not None:
             or_lookup = (Q(title__icontains=query) | 
-                         Q(summary__icontains=query)
+                         Q(description__icontains=query)
                         )
             qs = qs.filter(or_lookup).distinct() # distinct() is often necessary with Q lookups
         return qs
@@ -34,7 +33,7 @@ class ProgramManager(models.Manager):
 class Program(TrackingModel):
     title = models.CharField(max_length=150, unique=True)
     description = models.TextField(null=True, blank=True)
-    image = models.ImageField(upload_to='program_images/', blank=True)
+    image = models.ImageField(upload_to='program_images/', blank=True, null=True)
     is_active = models.BooleanField(default=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     duration = models.PositiveIntegerField(help_text='Duration in weeks')
@@ -43,13 +42,9 @@ class Program(TrackingModel):
 
     def __str__(self):
         return self.title
-
-    # might remove these
-    def get_absolute_url(self):
-        return reverse('program_detail', kwargs={'pk': self.pk})
     
-    def get_summary_chuck(self):
-        return self.summary[:500]
+    def get_short_description(self):
+        return self.description[:500]
 
 
 class CourseManager(models.Manager):
@@ -57,8 +52,7 @@ class CourseManager(models.Manager):
         qs = self.get_queryset()
         if query is not None:
             or_lookup = (Q(title__icontains=query) | 
-                         Q(summary__icontains=query)| 
-                         Q(code__icontains=query)| 
+                         Q(description__icontains=query)|  
                          Q(slug__icontains=query)
                         )
             qs = qs.filter(or_lookup).distinct() # distinct() is often necessary with Q lookups
@@ -85,7 +79,7 @@ class CourseContent(models.Model):
 
 class CourseDetails(models.Model):
     image = models.ImageField(upload_to='course_images/', null=True, blank=True)
-    duration = models.PositiveIntegerField(null=True, blank=True)
+    duration = models.PositiveIntegerField(default=12)
     enrollment_count = models.PositiveIntegerField(default=0)
     enrollment_deadline = models.DateField(null=True, blank=True)
 
@@ -112,14 +106,10 @@ class Course(TrackingModel):
     objects = CourseManager()
 
     def __str__(self):
-        return "{0} ({1})".format(self.title, self.code)
-
-    # might remove these
-    def get_absolute_url(self):
-        return reverse('course_detail', kwargs={'slug': self.slug})
+        return f"{self.title}"
     
-    def get_part_summary(self):
-        return f"{self.summary[:200]}..."
+    def get_short_description(self):
+        return f"{self.description[:200]}..."
     
     def save(self, *args, **kwargs):
         self.slug = slugify(self.title)
@@ -159,7 +149,7 @@ class Module(TrackingModel):
     description = models.TextField(blank=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='modules')
     order = models.PositiveIntegerField(default=0)
-    duration = models.IntegerField(blank=True, null=True)
+    duration = models.PositiveIntegerField(blank=True, null=True)
     is_published = models.BooleanField(default=False)
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, blank=True, null=True)
 
@@ -182,6 +172,9 @@ class Lesson(TrackingModel):
     order = models.PositiveIntegerField(default=0)
     duration = models.PositiveIntegerField(null=True, blank=True)
     is_published = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.title
 
 
 class Video(TrackingModel):
