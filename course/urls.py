@@ -12,9 +12,9 @@ router.register(r'questions', views.QuestionViewSet, basename='question')
 router.register(r'modules', views.ModuleViewSet, basename='module')
 router.register(r'lessons', views.LessonViewSet, basename='lesson')
 router.register(r'videos', views.VideoViewSet, basename='video')
+router.register(r'files', views.FileViewSet, basename='file')
+router.register(r'enrollments', views.EnrollmentViewSet, basename='enrollment')
 
 urlpatterns = [
     path('', include(router.urls)),
-    # path('videos/<int:pk>/', views.VideoAPIView.as_view()),
-    # path('files/<int:pk>/', views.FileAPIView.as_view()),
 ]

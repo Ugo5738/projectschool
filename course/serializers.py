@@ -1,6 +1,6 @@
 from course.models import (Answer, Course, CourseContent, CourseDetails,
-                           CourseMetadata, Lesson, Module, Program, Question,
-                           Quiz, Video)
+                           CourseMetadata, Enrollment, File, Lesson, Module,
+                           Program, Question, Quiz, Video)
 from project.models import TechSkill
 from rest_framework import serializers
 
@@ -112,8 +112,22 @@ class LessonSerializer(serializers.ModelSerializer):
 
 
 class VideoSerializer(serializers.ModelSerializer):
-    lesson = LessonSerializer()
+    lesson = serializers.PrimaryKeyRelatedField(queryset=Lesson.objects.all())
 
     class Meta:
         model = Video
+        fields = '__all__'
+
+    
+class FileSerializer(serializers.ModelSerializer):
+    lesson = serializers.PrimaryKeyRelatedField(queryset=Lesson.objects.all())
+
+    class Meta:
+        model = File
+        fields = '__all__'
+
+
+class EnrollmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Enrollment
         fields = '__all__'

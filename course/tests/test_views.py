@@ -4,6 +4,7 @@ from accounts.models import User
 from course.models import (Answer, Course, CourseContent, CourseDetails,
                            CourseMetadata, Enrollment, File, Lesson, Module,
                            Program, Question, Quiz, Video)
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 from membership.models import Instructor, Student
@@ -67,6 +68,7 @@ class ModelAPITestCase(APITestCase):
         self.instructor = Instructor.objects.create(instructor=self.instructor_user, bio="Great Teacher!", experience=4, education="Google Certified", certifications="Python Advanced Certificate", rating=3.5, reviews=20000)
 
         self.program = Program.objects.create(title='Test Program', description='Test Program Description', price=19.99, duration=10)
+        self.program_2 = Program.objects.create(title='Test Program 2', description='Test Program Description 2', price=99.99, duration=12)
         self.skill = TechSkill.objects.create(name='Python')
         self.skill_2 = TechSkill.objects.create(name='Django')
         self.tag = Tag.objects.create(name="Web Development")
@@ -88,15 +90,29 @@ class ModelAPITestCase(APITestCase):
         self.details.skills.add(self.skill)
         self.details.skills.add(self.skill_2)
 
+        self.metadata_2 = CourseMetadata.objects.create(level='Intermediate', rating=4.5, price=99.99, certificate=True)
+        self.content_2 = CourseContent.objects.create(syllabus='Course Syllabus', prerequisites='Have an intermediate understanding of coding.')
+        self.details_2 = CourseDetails.objects.create(instructor=self.instructor, program=self.program, projects=self.project)
+        self.details_2.skills.add(self.skill)
+
+        self.metadata_3 = CourseMetadata.objects.create(level='Advanced', rating=5.0, price=99.99, certificate=True)
+        self.content_3 = CourseContent.objects.create(syllabus='Course Syllabus', prerequisites='Have an Advanced understanding of coding.')
+        self.details_3 = CourseDetails.objects.create(instructor=self.instructor, program=self.program, projects=self.project)
+        self.details_3.skills.add(self.skill_2)
+
         self.course = Course.objects.create(title='Test Course', description='Test Course Description', metadata=self.metadata, content=self.content, details=self.details)
+        self.course_2 = Course.objects.create(title='Test Course 2', description='Test Course Description 2', metadata=self.metadata_2, content=self.content_2, details=self.details_2)
+        self.course_3 = Course.objects.create(title='Test Course 3', description='Test Course Description 3', metadata=self.metadata_3, content=self.content_3, details=self.details_3)
+
         self.quiz = Quiz.objects.create(title='Test Quiz', description='Test Quiz Description', total_marks=10)
         self.question = Question.objects.create(quiz=self.quiz, text='Test Question', marks=2)
         self.answer = Answer.objects.create(question=self.question, text='Test Answer', is_correct=True)
         self.module = Module.objects.create(title='Test Module', description='Week 1 module', course=self.course, order=1, duration=4, quiz=self.quiz)
         self.lesson = Lesson.objects.create(module=self.module, title="First Lesson", content="First lesson Content", order=1, duration=15)
         self.video = Video.objects.create(title='Test Video', lesson=self.lesson, video_file='https://www.youtube.com/watch?v=dQw4w9WgXcQ')
-        self.file = File.objects.create(title='Test File', description='This is a test file', lesson=self.lesson, file='file.txt')
-
+        self.file = File.objects.create(title='Test File', description='This is a test file', lesson=self.lesson, file='file.pdf')
+        
+        self.enrollment = Enrollment.objects.create(student=self.student, course=self.course, program=self.program)
 
 
 class ProgramAPITestCase(ModelAPITestCase):
@@ -694,16 +710,22 @@ class VideoAPITestCase(ModelAPITestCase):
     def setUp(self):
         super().setUp()
         
+        video_file = SimpleUploadedFile(
+            name='sample_video.mp4',
+            content=b'video_content',
+            content_type='video/mp4'
+        )
+
         self.data = {
             'title': 'New Video',
             'lesson': self.lesson.id,
             'description': 'This is a tutorial',
-            'video_file': 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+            'video_file': video_file,
         }
 
     def test_create_video_without_auth(self):
         url = reverse('video-list')
-        response = self.client.post(url, self.data, format='json')
+        response = self.client.post(url, self.data, format='multipart')
         
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(Video.objects.all().count(), 1)
@@ -711,7 +733,7 @@ class VideoAPITestCase(ModelAPITestCase):
     def test_create_video_with_auth(self):
         self.authenticate()
         url = reverse('video-list')
-        response = self.client.post(url, self.data, format='json')
+        response = self.client.post(url, self.data, format='multipart')
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Video.objects.all().count(), 2)
@@ -780,3 +802,180 @@ class VideoAPITestCase(ModelAPITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Video.objects.count(), 0)
+
+
+
+class FileAPITestCase(ModelAPITestCase):
+    def setUp(self):
+        super().setUp()
+        
+        text_file = SimpleUploadedFile(
+            name='sample_text.pdf',
+            content=b'text_content',
+            content_type='application/pdf'
+        )
+
+        self.data = {
+            'title': 'New File',
+            'lesson': self.lesson.id,
+            'description': 'This is a tutorial file',
+            'file': text_file,
+        }
+
+    def test_create_file_without_auth(self):
+        url = reverse('file-list')
+        
+        response = self.client.post(url, self.data)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_create_file_with_auth(self):
+        self.authenticate()
+
+        url = reverse('file-list')
+        response = self.client.post(url, self.data)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(File.objects.count(), 2)
+
+        file = File.objects.latest('id')
+        self.assertEqual(file.title, 'New File')
+        self.assertEqual(file.description, 'This is a tutorial file')
+        self.assertEqual(file.lesson, self.lesson)
+
+    def test_list_files_without_auth(self):
+        url = reverse('file-list')
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(File.objects.all().count(), 1)
+
+    def test_list_files_with_auth(self):
+        self.authenticate()
+        url = reverse('file-list')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_retrieve_file_without_auth(self):
+        url = reverse('file-detail', args=[self.file.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_retrieve_file_with_auth(self):
+        self.authenticate()
+        url = reverse('file-detail', args=[self.file.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_update_file_without_auth(self):
+        url = reverse('file-detail', args=[self.file.id])
+        data = {'title': 'Updated File'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.file.refresh_from_db()
+        self.assertNotEqual(self.file.title, data['title'])
+
+    def test_update_file_with_auth(self):
+        self.authenticate()
+        url = reverse('file-detail', args=[self.file.id])
+        data = {'title': 'Updated File'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.file.refresh_from_db()
+        self.assertEqual(self.file.title, data['title'])
+
+    def test_delete_file_without_auth(self):
+        url = reverse('file-detail', args=[self.file.id])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertTrue(File.objects.filter(id=self.file.id).exists())
+
+    def test_delete_file_with_auth(self):
+        self.authenticate()
+        url = reverse('file-detail', args=[self.file.id])
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(File.objects.filter(id=self.file.id).exists())
+
+
+
+class EnrollmentTestCase(ModelAPITestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.data = {
+            'student': self.student.id,
+            'course': self.course_2.id,
+            'program': self.program.id
+        }
+
+    def test_create_enrollment_without_auth(self):
+        url = reverse('enrollment-list')
+        
+        response = self.client.post(url, self.data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_create_enrollment_with_auth(self):
+        self.authenticate()
+        url = reverse('enrollment-list')
+        
+        response = self.client.post(url, self.data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Enrollment.objects.count(), 2)
+        self.assertEqual(Enrollment.objects.first().student, self.student)
+        self.assertEqual(Enrollment.objects.first().course, self.course)
+        self.assertEqual(Enrollment.objects.first().program, self.program)
+
+    def test_retrieve_enrollment_without_auth(self):
+        url = reverse('enrollment-detail', kwargs={'pk': self.enrollment.id})
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data['id'], self.enrollment.id)
+        self.assertEqual(response.data['student'], self.student.id)
+        self.assertEqual(response.data['course'], self.course.id)
+        self.assertEqual(response.data['program'], self.program.id)
+
+    def test_retrieve_enrollment_without_auth(self):
+        self.authenticate()
+        url = reverse('enrollment-detail', kwargs={'pk': self.enrollment.id})
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['id'], self.enrollment.id)
+        self.assertEqual(response.data['student'], self.student.id)
+        self.assertEqual(response.data['course'], self.course.id)
+        self.assertEqual(response.data['program'], self.program.id)
+
+    def test_update_enrollment(self):
+        self.authenticate()
+
+        url = reverse('enrollment-detail', kwargs={'pk': self.enrollment.id})
+
+        updated_data = {
+            'student': self.student.id,
+            'course': self.course_3.id,
+            'program': self.program.id
+        }
+
+        response = self.client.put(url, updated_data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['id'], self.enrollment.id)
+        self.assertEqual(response.data['student'], self.student.id)
+        self.assertEqual(response.data['course'], self.course_3.id)
+        self.assertEqual(response.data['program'], self.program.id)
+
+    def test_delete_enrollment(self):
+        self.authenticate()
+
+        url = reverse('enrollment-detail', kwargs={'pk': self.enrollment.id})
+
+        response = self.client.delete(url)
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Enrollment.objects.count(), 0)

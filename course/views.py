@@ -1,6 +1,7 @@
-from course.models import (Answer, Course, File, Lesson, Module, Program,
-                           Question, Quiz, Video)
+from course.models import (Answer, Course, Enrollment, File, Lesson, Module,
+                           Program, Question, Quiz, Video)
 from course.serializers import (AnswerSerializer, CourseSerializer,
+                                EnrollmentSerializer, FileSerializer,
                                 LessonSerializer, ModuleSerializer,
                                 ProgramSerializer, QuestionSerializer,
                                 QuizSerializer, VideoSerializer)
@@ -93,8 +94,19 @@ class VideoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
 
-# class FileAPIView(APIView):
-#     def get(self, request, pk):
-#         file = File.objects.get(pk=pk)
-#         file_url = request.build_absolute_uri(file.file.url)
-#         return Response({"url": file_url})
+class FileViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows videos to be viewed or edited.
+    """
+    queryset = File.objects.all()
+    serializer_class = FileSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class EnrollmentViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows enrols to be viewed or edited.
+    """
+    queryset = Enrollment.objects.all()
+    serializer_class = EnrollmentSerializer
+    permission_classes = [IsAuthenticated]
