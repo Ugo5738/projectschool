@@ -3,10 +3,11 @@ from course.models import (Answer, Course, File, Lesson, Module, Program,
 from course.serializers import (AnswerSerializer, CourseSerializer,
                                 LessonSerializer, ModuleSerializer,
                                 ProgramSerializer, QuestionSerializer,
-                                QuizSerializer)
+                                QuizSerializer, VideoSerializer)
 from django.db.models import Q
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import (IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -44,6 +45,7 @@ class QuizViewSet(viewsets.ModelViewSet):
     """
     queryset = Quiz.objects.all()
     serializer_class = QuizSerializer
+    permission_classes = [IsAuthenticated]
 
 
 class AnswerViewSet(viewsets.ModelViewSet):
@@ -52,6 +54,7 @@ class AnswerViewSet(viewsets.ModelViewSet):
     """
     queryset = Answer.objects.all()
     serializer_class = AnswerSerializer
+    permission_classes = [IsAuthenticated]
 
 
 class QuestionViewSet(viewsets.ModelViewSet):
@@ -60,7 +63,8 @@ class QuestionViewSet(viewsets.ModelViewSet):
     """
     queryset = Question.objects.all()
     serializer_class = QuestionSerializer
-
+    permission_classes = [IsAuthenticated]
+    
 
 class ModuleViewSet(viewsets.ModelViewSet):
     """
@@ -80,15 +84,17 @@ class LessonViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 
-class VideoAPIView(APIView):
-    def get(self, request, pk):
-        video = Video.objects.get(pk=pk)
-        file_url = request.build_absolute_uri(video.video_file.url)
-        return Response({"url": file_url})
+class VideoViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows videos to be viewed or edited.
+    """
+    queryset = Video.objects.all()
+    serializer_class = VideoSerializer
+    permission_classes = [IsAuthenticated]
 
 
-class FileAPIView(APIView):
-    def get(self, request, pk):
-        file = File.objects.get(pk=pk)
-        file_url = request.build_absolute_uri(file.file.url)
-        return Response({"url": file_url})
+# class FileAPIView(APIView):
+#     def get(self, request, pk):
+#         file = File.objects.get(pk=pk)
+#         file_url = request.build_absolute_uri(file.file.url)
+#         return Response({"url": file_url})

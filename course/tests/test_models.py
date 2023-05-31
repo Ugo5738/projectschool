@@ -3,22 +3,38 @@ from course.models import (Answer, Course, CourseContent, CourseDetails,
                            CourseMetadata, Enrollment, File, Lesson, Module,
                            Program, Question, Quiz, Video)
 from django.db import IntegrityError
+from django.utils import timezone
 from membership.models import Instructor, Student
-from project.models import Project, TechSkill
+from project.models import Project, ProjectAttachment, Tag, Task, TechSkill
 from rest_framework.test import APITestCase
 
 
 class APITestCaseSetUp(APITestCase):
     def set_up(self):
-        self.user = User.objects.create_user(username="test", email="test@test.com", password="testing", first_name='Jane', last_name='Doe')
-        self.instructor = Instructor.objects.create(instructor=self.user, bio="Great Teacher!", experience=4, education="Google Certified", certifications="Python Advanced Certificate", rating=3.5, reviews=20000)
-        self.student = Student.objects.create(student=self.user, learning_style='visual')
+        self.admin_user = User.objects.create_user(username="admin-test", email="admintest@test.com", password="admin", first_name='Admin', last_name='Admin', is_superuser=True)
+        self.student_user = User.objects.create_user(username="stu-test", email="studenttest@test.com", password="student", first_name='Student', last_name='Student', is_student=True)
+        self.instructor_user = User.objects.create_user(username="ins-test", email="instructortest@test.com", password="instructor", first_name='Instructor', last_name='Instructor', is_instructor=True)
+        self.client_user = User.objects.create_user(username="client-test", email="clienttest@test.com", password="client", first_name='client', last_name='client', is_client=True)
+        self.student = Student.objects.create(student=self.student_user, learning_style='visual')
+        self.instructor = Instructor.objects.create(instructor=self.instructor_user, bio="Great Teacher!", experience=4, education="Google Certified", certifications="Python Advanced Certificate", rating=3.5, reviews=20000)
         self.program = Program.objects.create(title='Test Program', description='Test Program Description', price=19.99, duration=10)
         self.skill = TechSkill.objects.create(name='Python')
-        self.project = Project.objects.create(title='Project 1', description='Project 1 Description')
+        self.skill_2 = TechSkill.objects.create(name='Django')
+        self.tag = Tag.objects.create(name="Web Development")
+        self.tag_2 = Tag.objects.create(name="Beginner")
+        self.project_scope = ProjectAttachment.objects.create(name="Emotive Project Scope")
+        self.ip_assignment = ProjectAttachment.objects.create(name="Emotive IP Assignment")
+        self.project = Project.objects.create(title='Project 1', description='Project 1 Description', owner=self.admin_user, assigned_to=self.instructor_user, paid=False, budget=0.0)
+        self.project.tags.add(self.tag)
+        self.project.attachments.add(self.project_scope)
+        self.project.attachments.add(self.ip_assignment)
+        self.task_1 = Task.objects.create(project=self.project, title='Task 1', description='Task 1 Description', due_date=timezone.now(), estimated_hours=40, assigned_to=self.student_user, comments="Blog Phase 1")
+        self.task_1.tags.add(self.tag_2)
         self.metadata = CourseMetadata.objects.create(level='beginner', rating=4.5, price=9.99, certificate=True)
         self.content = CourseContent.objects.create(syllabus='Course Syllabus', prerequisites='Have a basic understanding of coding.')
-        self.details = CourseDetails.objects.create(instructor=self.instructor, program=self.program, skills=self.skill, projects=self.project)
+        self.details = CourseDetails.objects.create(instructor=self.instructor, program=self.program, projects=self.project)
+        self.details.skills.add(self.skill)
+        self.details.skills.add(self.skill_2)
         self.course = Course.objects.create(title='Test Course', description='Test Course Description', metadata=self.metadata, content=self.content, details=self.details)        
         self.quiz = Quiz.objects.create(title='Test Quiz', description='Test Quiz Description', total_marks=10)
         self.question = Question.objects.create(quiz=self.quiz, text='Test Question', marks=2)

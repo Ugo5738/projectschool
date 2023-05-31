@@ -1,6 +1,8 @@
 from accounts.models import User
 from django.db import models
 from django.db.models import Q
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.urls import reverse
 from helpers.models import TrackingModel
 from project.models import Project, TechSkill
@@ -30,7 +32,8 @@ class Student(TrackingModel):
     availability = models.CharField(max_length=50, blank=True, null=True)   
     tech_skills = models.ManyToManyField(TechSkill, related_name='tech_skills', blank=True)
     projects = models.ManyToManyField(Project, related_name='projects', blank=True)
-    
+    referrer_code = models.CharField(max_length=20, blank=True, null=True)
+
     objects = StudentManager() 
 
     def __str__(self):
@@ -64,3 +67,24 @@ class Instructor(TrackingModel):
         self.instructor.delete()
         super().delete(*args, **kwargs)
 
+
+class Referral(models.Model):
+    referrer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='referrals')
+    referred_student = models.ForeignKey('Student', on_delete=models.CASCADE, related_name='referred_by')
+    date_created = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.referrer.first_name} referred {self.referred_student.user.first_name} on {self.date_created}"
+
+
+@receiver(post_save, sender=Student)
+def award_referrer_bonus(sender, instance, created, **kwargs):
+    if created:
+        referrer_code = instance.referrer_code
+        if referrer_code:
+            try:
+                referring_user = User.objects.get(referral_code=referrer_code)
+                referral = Referral(referring_user=referring_user, referred_student=instance)
+                referral.save()
+            except User.DoesNotExist:
+                pass

@@ -3,6 +3,7 @@ from django.db import models
 from django.db.models import Q
 from django.urls import reverse
 from django.utils.text import slugify
+from django_extensions.db.fields import AutoSlugField
 from helpers.models import TrackingModel
 from membership.models import Instructor, Student
 from project.models import Project, TechSkill
@@ -85,8 +86,8 @@ class CourseDetails(models.Model):
 
     instructor = models.ForeignKey(Instructor, on_delete=models.CASCADE)
     program = models.ForeignKey(Program, on_delete=models.CASCADE)
-    skills = models.ForeignKey(TechSkill, on_delete=models.CASCADE)
-    projects = models.ForeignKey(Project, on_delete=models.CASCADE)
+    skills = models.ManyToManyField(TechSkill)
+    projects = models.ForeignKey(Project, on_delete=models.CASCADE)  # I am not sure this is needed
     
     class Meta:
         verbose_name_plural = 'Course details'
@@ -94,7 +95,7 @@ class CourseDetails(models.Model):
 
 class Course(TrackingModel):
     title = models.CharField(max_length=200, null=True)
-    slug = models.SlugField(blank=True, unique=True)
+    slug = AutoSlugField(populate_from='title', unique=True)
     description = models.TextField(blank=True, null=True)
     is_published = models.BooleanField(default=False)
     active = models.BooleanField(default=False)
@@ -110,10 +111,6 @@ class Course(TrackingModel):
     
     def get_short_description(self):
         return f"{self.description[:200]}..."
-    
-    def save(self, *args, **kwargs):
-        self.slug = slugify(self.title)
-        super().save(*args, **kwargs)
 
 
 class Quiz(models.Model):
@@ -128,6 +125,7 @@ class Quiz(models.Model):
 class Question(models.Model):
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
     text = models.TextField()
+    correct_answer = models.TextField()
     marks = models.PositiveIntegerField(default=1)
 
     def __str__(self):
@@ -145,7 +143,7 @@ class Answer(models.Model):
 
 class Module(TrackingModel):
     title = models.CharField(max_length=200)
-    slug = models.SlugField(max_length=200, unique=True, blank=True)
+    slug = AutoSlugField(populate_from='title', unique=True)
     description = models.TextField(blank=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='modules')
     order = models.PositiveIntegerField(default=0)
@@ -158,11 +156,6 @@ class Module(TrackingModel):
 
     def __str__(self):
         return self.title
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.title)
-        super(Module, self).save(*args, **kwargs)
 
 
 class Lesson(TrackingModel):
@@ -181,11 +174,12 @@ class Video(TrackingModel):
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    video_file = models.FileField(upload_to='videos/', validators=[FileExtensionValidator(['mp4', 'mkv', 'wmv', '3gp', 'f4v', 'avi', 'mp3'])])
-
-    # not sure this is needed
-    def get_absolute_url(self):
-        return reverse('video_single', kwargs={'slug': self.course.slug, 'video_slug': self.slug})
+    video_file = models.FileField(
+        upload_to='videos/', 
+        validators=[FileExtensionValidator(['mp4', 'mkv', 'wmv', '3gp', 'f4v', 'avi', 'mp3'])],
+        null=True, 
+        blank=True,
+    )
 
     def __str__(self):
         return self.title
@@ -195,7 +189,12 @@ class File(TrackingModel):
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    file = models.FileField(upload_to='files/', validators=[FileExtensionValidator(['pdf', 'docx', 'doc', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', '7zip'])])
+    file = models.FileField(
+        upload_to='files/', 
+        validators=[FileExtensionValidator(['pdf', 'docx', 'doc', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', '7zip'])],
+        null=True, 
+        blank=True,
+    )
 
     def __str__(self):
         return self.title

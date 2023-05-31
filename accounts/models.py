@@ -1,9 +1,11 @@
+import random
+import string
+
 from django.conf import settings
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser, PermissionsMixin
 from django.db import models
 from django.db.models import Q
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from helpers.models import TrackingModel
 from PIL import Image
@@ -14,17 +16,19 @@ class CustomUserManager(BaseUserManager):
     def _create_user(self, username, email, password, **extra_fields):
         if not username:
             raise ValueError('Username field is required')
-        
+
         if not email:
             raise ValueError('Email field is required')
-        
+
         email = self.normalize_email(email)
         username = self.model.normalize_username(username)
+
         user = self.model(username=username, email=email, **extra_fields)
         user.set_password(password)
+
         user.save(using=self._db)
         return user
-
+    
     def create_user(self, username, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)
@@ -62,9 +66,11 @@ class User(AbstractUser, TrackingModel):
     postal_code = models.CharField(max_length=20, blank=True, null=True)
     address = models.CharField(max_length=60, blank=True, null=True)
     picture = models.ImageField(upload_to='profile_pictures/%y/%m/%d/', default='default.png', null=True)
-    
+    referral_code = models.CharField(max_length=20, unique=True, blank=True, null=True)
+
     is_student = models.BooleanField(default=False)
-    is_lecturer = models.BooleanField(default=False)
+    is_instructor = models.BooleanField(default=False)
+    is_client = models.BooleanField(default=False)
     
     newsletter = models.BooleanField(default=False)
     
@@ -74,7 +80,7 @@ class User(AbstractUser, TrackingModel):
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
-
+    
     @property
     def get_full_name(self):
         full_name = self.username
@@ -88,8 +94,10 @@ class User(AbstractUser, TrackingModel):
             return "Admin"
         elif self.is_student:
             return "Student"
-        elif self.is_lecturer:
-            return "Lecturer"
+        elif self.is_instructor:
+            return "Instructor"
+        elif self.is_student:
+            return "Client"
 
     def get_picture(self): 
         try:
@@ -98,11 +106,15 @@ class User(AbstractUser, TrackingModel):
             no_picture = settings.MEDIA_URL + 'default.png'
             return no_picture
 
-    def get_absolute_url(self):
-        return reverse('profile_single', kwargs={'id': self.id})
+    def generate_referral_code(self):
+        return ''.join(random.choices(string.ascii_uppercase + string.digits, k=20))
 
     def save(self, *args, **kwargs):
+        if not self.pk:
+            # generate referral code if user is being created
+            self.referral_code = self.generate_referral_code()
         super().save(*args, **kwargs)
+        
         try:
             img = Image.open(self.picture.path)
             if img.height > 300 or img.width > 300:

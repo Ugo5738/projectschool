@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("SETTINGS_SECRET_KEY", 'fake secret key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = bool(int(os.environ.get("DEBUG", 0)))
 
 ALLOWED_HOSTS = ["*"]
 
@@ -34,6 +34,7 @@ THIRD_PARTY_APPS = [
     "django_filters",
     "drf_yasg",
     "storages",
+    'django_extensions',
 ]
 
 CUSTOM_APPS = [
