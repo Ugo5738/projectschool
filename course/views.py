@@ -1,3 +1,4 @@
+from accounts.pagination import CustomPageNumberPagination
 from course.models import (Answer, Course, Enrollment, File, Lesson, Module,
                            Program, Question, Quiz, Video)
 from course.serializers import (AnswerSerializer, CourseSerializer,
@@ -6,11 +7,10 @@ from course.serializers import (AnswerSerializer, CourseSerializer,
                                 ProgramSerializer, QuestionSerializer,
                                 QuizSerializer, VideoSerializer)
 from django.db.models import Q
-from rest_framework import viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, viewsets
 from rest_framework.permissions import (IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
-from rest_framework.response import Response
-from rest_framework.views import APIView
 
 
 class ProgramViewSet(viewsets.ModelViewSet):
@@ -20,6 +20,12 @@ class ProgramViewSet(viewsets.ModelViewSet):
     queryset = Program.objects.all()
     serializer_class = ProgramSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    pagination_class = CustomPageNumberPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    
+    filterset_fields = ['id']
+    search_fields = ['id']
+    ordering_fields = ['id']
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -38,6 +44,12 @@ class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    pagination_class = CustomPageNumberPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    
+    filterset_fields = ['id']
+    search_fields = ['id']
+    ordering_fields = ['id']
 
 
 class QuizViewSet(viewsets.ModelViewSet):
@@ -56,6 +68,12 @@ class AnswerViewSet(viewsets.ModelViewSet):
     queryset = Answer.objects.all()
     serializer_class = AnswerSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = CustomPageNumberPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    
+    filterset_fields = ['id']
+    search_fields = ['id']
+    ordering_fields = ['id']
 
 
 class QuestionViewSet(viewsets.ModelViewSet):
@@ -65,6 +83,12 @@ class QuestionViewSet(viewsets.ModelViewSet):
     queryset = Question.objects.all()
     serializer_class = QuestionSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = CustomPageNumberPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    
+    filterset_fields = ['id']
+    search_fields = ['id']
+    ordering_fields = ['id']
     
 
 class ModuleViewSet(viewsets.ModelViewSet):
@@ -74,39 +98,69 @@ class ModuleViewSet(viewsets.ModelViewSet):
     queryset = Module.objects.all()
     serializer_class = ModuleSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    pagination_class = CustomPageNumberPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    
+    filterset_fields = ['id']
+    search_fields = ['id']
+    ordering_fields = ['id']
 
 
 class LessonViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows lessons to be viewed or edited.
+    API endpoint that allows lessons to be created, viewed or edited.
     """
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    pagination_class = CustomPageNumberPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    
+    filterset_fields = ['id']
+    search_fields = ['id']
+    ordering_fields = ['id']
 
 
 class VideoViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows videos to be viewed or edited.
+    API endpoint that allows videos to be uploaded, viewed or edited.
     """
     queryset = Video.objects.all()
     serializer_class = VideoSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = CustomPageNumberPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    
+    filterset_fields = ['id']
+    search_fields = ['id']
+    ordering_fields = ['id']
 
 
 class FileViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows videos to be viewed or edited.
+    API endpoint that allows videos to be uploaded, viewed or edited.
     """
     queryset = File.objects.all()
     serializer_class = FileSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = CustomPageNumberPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    
+    filterset_fields = ['id']
+    search_fields = ['id']
+    ordering_fields = ['id']
 
 
 class EnrollmentViewSet(viewsets.ModelViewSet):
     """
-    API endpoint that allows enrols to be viewed or edited.
+    API endpoint that allows enrols to be created, viewed or edited.
     """
     queryset = Enrollment.objects.all()
     serializer_class = EnrollmentSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = CustomPageNumberPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    
+    filterset_fields = ['id']
+    search_fields = ['id']
+    ordering_fields = ['id']

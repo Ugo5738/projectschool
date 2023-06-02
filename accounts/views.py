@@ -1,12 +1,18 @@
-from accounts import serializers
 from accounts.models import User
-from rest_framework import generics, permissions, status, viewsets
+from accounts.pagination import CustomPageNumberPagination
+from accounts.serializers import RegisterSerializer, UserSerializer
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, status, viewsets
 from rest_framework.generics import GenericAPIView
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 
 class RegisterAPIView(GenericAPIView):
-    serializer_class = serializers.RegisterSerializer
+    """
+    API endpoint that users to be created.
+    """
+    serializer_class = RegisterSerializer
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
@@ -33,10 +39,19 @@ class RegisterAPIView(GenericAPIView):
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    serializer_class = serializers.UserSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    """
+    API endpoint that users to be viewed, edited and searched.
+    """
     queryset = User.objects.exclude(is_superuser=True)
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = CustomPageNumberPagination
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    
     lookup_field = 'id'
+    filterset_fields = ['id']
+    search_fields = ['id']
+    ordering_fields = ['id']
 
 
 # Don't understand the use of this yet

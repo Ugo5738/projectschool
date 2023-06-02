@@ -8,8 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 from membership.models import Instructor, Student
-from project.models import (Activity, Project, ProjectAttachment, Tag, Task,
-                            TechSkill)
+from project.models import Project, ProjectAttachment, Tag, Task, TechSkill
 from rest_framework import status
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
@@ -113,6 +112,7 @@ class ModelAPITestCase(APITestCase):
         self.file = File.objects.create(title='Test File', description='This is a test file', lesson=self.lesson, file='file.pdf')
         
         self.enrollment = Enrollment.objects.create(student=self.student, course=self.course, program=self.program)
+
 
 
 class ProgramAPITestCase(ModelAPITestCase):
