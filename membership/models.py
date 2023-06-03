@@ -122,7 +122,7 @@ class Referral(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        referring_user = self.referrer.get_full_name()
+        referring_user = self.referrer.get_full_name
         referred_user = self.referred_student or self.referred_client
         referred_user_type = 'Student' if self.referred_student else 'Client'
         return f"{referring_user} referred {referred_user} ({referred_user_type}) on {self.date_created}"

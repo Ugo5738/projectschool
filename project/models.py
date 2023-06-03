@@ -1,4 +1,7 @@
+from datetime import date
+
 from accounts.models import User
+from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.utils import timezone
@@ -23,9 +26,9 @@ class Project(models.Model):
     priority = models.IntegerField(default=1)
     progress = models.IntegerField(default=0)
     status = models.CharField(max_length=10, default='new', choices=STATUS_CHOICES)
-    start_date = models.DateField(default=timezone.now)
+    start_date = models.DateField(default=date.today)  # default=timezone.now().date)
     duration = models.PositiveIntegerField(default=12)  # duration in weeks
-    end_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)  # this is also the client
     assigned_to = models.ForeignKey(User, on_delete=models.CASCADE, related_name='assigned_projects', null=True, blank=True)
     paid = models.BooleanField(default=True)
@@ -37,9 +40,14 @@ class Project(models.Model):
     attachments = models.ManyToManyField('ProjectAttachment', blank=True)
 
     def save(self, *args, **kwargs):
-        self.end_date = self.start_date + timezone.timedelta(weeks=self.duration)
+        if not self.end_date:
+            self.end_date = self.start_date + timezone.timedelta(weeks=self.duration)
         super().save(*args, **kwargs)
 
+    def clean(self):
+        if self.start_date and self.end_date and self.start_date > self.end_date:
+            raise ValidationError("Start date cannot be after end date.")
+    
 
 class Task(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE)

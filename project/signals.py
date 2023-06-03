@@ -17,7 +17,7 @@ def create_activity(sender, instance, created, **kwargs):
         else:
             Activity.objects.create(
                 user=instance.owner,
-                project=instance, # .project,
+                project=instance, 
                 task=instance if isinstance(instance, Task) else None,
                 activity_type='updated_task'
             )
@@ -31,8 +31,8 @@ def create_activity(sender, instance, created, **kwargs):
             )
         else:
             Activity.objects.create(
-                user=instance.owner,
-                project=instance, # .project,
+                user=instance.assigned_to,
+                project=instance.project, 
                 task=instance if isinstance(instance, Task) else None,
                 activity_type='updated_task'
             )

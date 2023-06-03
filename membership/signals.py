@@ -28,3 +28,24 @@ def award_referrer_bonus_for_client(sender, instance, created, **kwargs):
                 referral.save()
             except User.DoesNotExist:
                 pass
+
+
+@receiver(post_save, sender=Referral)
+def associate_referrer(sender, instance, created, **kwargs):
+    if created:
+        referrer = instance.referrer
+        referral_code = referrer.referral_code
+        if instance.referred_student:
+            try:
+                referred_student = instance.referred_student
+                referred_student.referrer_code = referral_code
+                referred_student.save()
+            except Student.DoesNotExist:
+                pass
+        elif instance.referred_client:
+            try:
+                referred_client = instance.referred_client
+                referred_client.referrer_code = referral_code
+                referred_client.save()
+            except Client.DoesNotExist:
+                pass

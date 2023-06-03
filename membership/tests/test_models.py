@@ -1,6 +1,6 @@
 from accounts.models import User
 from django.utils import timezone
-from membership.models import Client, Instructor, Student
+from membership.models import Client, Instructor, Referral, Student
 from project.models import Project, ProjectAttachment, Tag, Task, TechSkill
 from rest_framework.test import APITestCase
 
@@ -41,7 +41,7 @@ class APITestCaseSetUp(APITestCase):
         )
         self.student = Student.objects.create(
             student=self.student_user,
-            learning_style='visual'
+            learning_style='visual',
         )
         self.instructor = Instructor.objects.create(
             instructor=self.instructor_user,
@@ -50,12 +50,20 @@ class APITestCaseSetUp(APITestCase):
             education="Google Certified",
             certifications="Python Advanced Certificate",
             rating=3.5,
-            reviews=20000
+            reviews=20000,
         )
         self.client = Client.objects.create(
             client=self.client_user,
             company_name="Test Company",
-            industry="Technology"
+            industry="Technology",
+        )
+        self.referral = Referral.objects.create(
+            referrer=self.admin_user,
+            referred_student=self.student,
+        )
+        self.referral_2 = Referral.objects.create(
+            referrer=self.student_user,
+            referred_client=self.client,
         )
 
         self.skill = TechSkill.objects.create(name='Python')
@@ -128,3 +136,28 @@ class SearchTestCase(APITestCaseSetUp):
 
         student_results, instructor_results, client_results = Client.objects.search(query='industry')
         self.assertEqual(len(client_results), 0)  
+
+
+class ReferralModelTestCase(APITestCaseSetUp):
+    def test_referral_model(self): 
+        self.assertEqual(str(self.referral), "Admin Admin referred Student Student (Student) on " + str(self.referral.date_created))
+        self.assertEqual(self.referral.referrer, self.admin_user)
+        self.assertEqual(self.referral.referred_student, self.student)
+        self.assertIsNone(self.referral.referred_client)
+
+        self.assertEqual(str(self.referral_2), "Student Student referred Client Client (Client) on " + str(self.referral_2.date_created))
+        self.assertEqual(self.referral_2.referrer, self.student_user)
+        self.assertEqual(self.referral_2.referred_client, self.client)
+        self.assertIsNone(self.referral_2.referred_student)
+
+
+class SignalsTestCase(APITestCaseSetUp):
+    def test_award_referrer_bonus_for_student(self):
+        referral = Referral.objects.filter(referrer=self.admin_user, referred_student=self.student)
+        self.assertEqual(referral.count(), 1)
+        self.assertEqual(str(referral.first()), f"{self.admin_user.get_full_name} referred {self.student.student.get_full_name} (Student) on {referral.first().date_created}")
+
+    def test_award_referrer_bonus_for_client(self):        
+        referral = Referral.objects.filter(referrer=self.student_user, referred_client=self.client)
+        self.assertEqual(referral.count(), 1)
+        self.assertEqual(str(referral.first()), f"{self.student_user.get_full_name} referred {self.client.client.get_full_name} (Client) on {referral.first().date_created}")

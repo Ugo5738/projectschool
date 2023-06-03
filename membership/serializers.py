@@ -1,5 +1,5 @@
 from membership import models
-from membership.models import Client, Instructor, Student
+from membership.models import Client, Instructor, Referral, Student
 from rest_framework import serializers
 
 
@@ -20,3 +20,8 @@ class ClientSerializer(serializers.ModelSerializer):
         model = Client
         fields = '__all__'
         
+
+class ReferralSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Referral
+        fields = '__all__'

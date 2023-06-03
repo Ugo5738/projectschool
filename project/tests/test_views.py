@@ -1,8 +1,12 @@
+from datetime import date
+
 from accounts.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 from membership.models import Client, Instructor, Student
-from project.models import Project, ProjectAttachment, Tag, Task, TechSkill
+from project.models import (Activity, Project, ProjectAttachment, Tag, Task,
+                            TechSkill)
 from rest_framework import status
 from rest_framework.reverse import reverse
 from rest_framework.test import APITestCase
@@ -54,249 +58,470 @@ class ModelAPITestCase(APITestCase):
         self.tag = Tag.objects.create(name="Web Development")
         self.tag_2 = Tag.objects.create(name="Beginner")
 
-        self.project_scope = ProjectAttachment.objects.create(name="Emotive Project Scope")
-        self.ip_assignment = ProjectAttachment.objects.create(name="Emotive IP Assignment")
+        self.file_1 = ProjectAttachment.objects.create(name="Emotive Project Scope")
+        self.file_2 = ProjectAttachment.objects.create(name="Emotive IP Assignment")
         self.project = Project.objects.create(title='Project 1', description='Project 1 Description', owner=self.admin_user, assigned_to=self.instructor_user, paid=False, budget=0.0)
         self.project.tags.add(self.tag)
-        self.project.attachments.add(self.project_scope)
-        self.project.attachments.add(self.ip_assignment)
+        self.project.attachments.add(self.file_1)
+        self.project.attachments.add(self.file_2)
 
         self.task_1 = Task.objects.create(project=self.project, title='Task 1', description='Task 1 Description', due_date=timezone.now(), estimated_hours=40, assigned_to=self.student_user, comments="Blog Phase 1")
         self.task_1.tags.add(self.tag_2)
 
+        self.activity = Activity.objects.create(user=self.admin_user, project=self.project, task=self.task_1, activity_type='updated_task')
 
-class StudentAPITestCase(ModelAPITestCase):
+
+class TechSkillAPITestCase(ModelAPITestCase):
     def setUp(self):
         super().setUp()
 
         self.data = {
-            'student': self.student_user_2.id,
-            'goals': 'employment',
-            'learning_style': 'visual',
-            'availability': 'monday',
+            'name': 'JavaScript',
         }
 
-    # TEST THE SEARCH FUNCTIONALITY
-
-    def test_create_student_without_auth(self):
-        url = reverse('student-list')
+    def test_create_tech_skills_without_auth(self):
+        url = reverse('tech_skill-list')
         
-        initial_count = Student.objects.all().count()
+        initial_count = TechSkill.objects.all().count()
         response = self.client.post(url, self.data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertEqual(Student.objects.all().count(), initial_count)
+        self.assertEqual(TechSkill.objects.all().count(), initial_count)
 
-    def test_create_student_with_auth(self):
+    def test_create_tech_skills_with_auth(self):
         self.authenticate()
 
-        initial_count = Student.objects.all().count()
-        response = self.client.post(reverse('student-list'), self.data, format='json')
+        initial_count = TechSkill.objects.all().count()
+        response = self.client.post(reverse('tech_skill-list'), self.data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Student.objects.all().count(), initial_count + 1)
+        self.assertEqual(TechSkill.objects.all().count(), initial_count + 1)
 
-    def test_list_students_without_auth(self):
-        url = reverse('student-list')
+    def test_list_tech_skills_without_auth(self):
+        url = reverse('tech_skill-list')
         response = self.client.get(url)
         response_data_dict = response.data['results']
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response_data_dict), 1)
-        self.assertEqual(response_data_dict[0]['learning_style'], self.student.learning_style)    
+        self.assertEqual(response_data_dict[0]['name'], self.skill.name)
 
-    def test_retrieve_student(self):
-        url = reverse('student-detail', args=[self.student.pk])
+    def test_retrieve_tech_skill(self):
+        url = reverse('tech_skill-detail', args=[self.skill.pk])
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['learning_style'], self.student.learning_style)
+        self.assertEqual(response.data['name'], self.skill.name)
 
-    def test_update_student_with_auth(self):
+    def test_update_tech_skill_with_auth(self):
         self.authenticate()
 
-        url = reverse('student-detail', args=[self.student.pk])
-        data = {'learning_style': 'auditory'}
+        url = reverse('tech_skill-detail', args=[self.skill.pk])
+        data = {'name': 'Blockchain'}
         response = self.client.patch(url, data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.student.refresh_from_db()
-        self.assertEqual(self.student.learning_style, data['learning_style'])
+        self.skill.refresh_from_db()
+        self.assertEqual(self.skill.name, data['name'])
 
-    def test_delete_student_with_auth(self):
+    def test_delete_tech_skill_with_auth(self):
         self.authenticate()
 
-        url = reverse('student-detail', args=[self.student.pk])
+        url = reverse('tech_skill-detail', args=[self.skill.pk])
         response = self.client.delete(url)
         
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(Student.objects.count(), 0) 
+        self.assertEqual(TechSkill.objects.count(), 1) 
 
 
-class InstructorAPITestCase(ModelAPITestCase):
+class ProjectAPITestCase(ModelAPITestCase):
     def setUp(self):
         super().setUp()
-
+        
         self.data = {
-            'instructor': self.instructor_user_2.id,
-            'bio': 'Granular Teaching Tactics',
-            'experience': 4,
-            'education': 'Stanford University',
-            'certifications': 'Google TensorFlow Certificate',
-            'rating': 5.0,
+            'title': 'Project 22',
+            'description': 'Project 22 Description',
+            'owner': self.client_user.id,
+            'assigned_to': self.instructor_user.id,
+            'paid': True,
+            'budget': 100000.0,
         }
 
-    # TEST THE SEARCH FUNCTIONALITY
-
-    def test_create_instructor_without_auth(self):
-        url = reverse('instructor-list')
+    def test_create_project_without_auth(self):
+        url = reverse('project-list')
         
-        initial_count = Instructor.objects.all().count()
+        initial_count = Project.objects.all().count()
         response = self.client.post(url, self.data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertEqual(Instructor.objects.all().count(), initial_count)
+        self.assertEqual(Project.objects.all().count(), initial_count)
 
-    def test_create_instructor_with_auth(self):
+    def test_create_project_with_auth(self):
         self.authenticate()
 
-        initial_count = Instructor.objects.all().count()
-        response = self.client.post(reverse('instructor-list'), self.data, format='json')
+        initial_count = Project.objects.all().count()
+        response = self.client.post(reverse('project-list'), self.data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Instructor.objects.all().count(), initial_count + 1)
+        self.assertEqual(Project.objects.all().count(), initial_count + 1)
 
-    def test_list_instructors_without_auth(self):
-        url = reverse('instructor-list')
-        response = self.client.get(url)
-
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        
-    def test_list_instructors_with_auth(self):
-        self.authenticate()
-
-        url = reverse('instructor-list')
+    def test_list_projects_without_auth(self):
+        url = reverse('project-list')
         response = self.client.get(url)
         response_data_dict = response.data['results']
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response_data_dict), 1)
-        self.assertEqual(response_data_dict[0]['education'], self.instructor.education)
+        self.assertEqual(response_data_dict[0]['title'], self.project.title)
 
-    def test_retrieve_instructor_without_auth(self):
-        url = reverse('instructor-detail', args=[self.instructor.pk])
+    def test_retrieve_project(self):
+        url = reverse('project-detail', args=[self.project.pk])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['title'], self.project.title)
+
+    def test_update_project_without_auth(self):
+        url = reverse('project-detail', args=[self.project.pk])
+        data = {'title': 'Project 24'}
+        response = self.client.patch(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_update_project_with_auth(self):
+        self.authenticate()
+
+        url = reverse('project-detail', args=[self.project.pk])
+        data = {'title': 'Project 24'}
+        response = self.client.patch(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.title, data['title'])
+
+    def test_delete_project_with_auth(self):
+        self.authenticate()
+
+        url = reverse('project-detail', args=[self.project.pk])
+        response = self.client.delete(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Project.objects.count(), 0) 
+
+
+class TaskAPITestCase(ModelAPITestCase):
+    def setUp(self):
+        super().setUp()
+        
+        self.data = {
+            'project': self.project.pk,
+            'title': 'Task 2',
+            'description': 'Task 2 Description',
+            'due_date': str(date.today()),
+            'estimated_hours': 20,
+            'assigned_to': self.student_user.id,
+            'comments': 'New task',
+        }
+
+    def test_create_task_without_auth(self):
+        url = reverse('task-list')
+        
+        initial_count = Task.objects.all().count()
+        response = self.client.post(url, self.data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(Task.objects.all().count(), initial_count)
+
+    def test_create_task_with_auth(self):
+        self.authenticate()
+
+        initial_count = Task.objects.all().count()
+        response = self.client.post(reverse('task-list'), self.data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Task.objects.all().count(), initial_count + 1)
+
+    def test_list_tasks_without_auth(self):
+        url = reverse('task-list')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_retrieve_task_without_auth(self):
+        url = reverse('task-detail', args=[self.task_1.pk])
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         
-    def test_retrieve_instructor_with_auth(self):
+    def test_retrieve_task_with_auth(self):
         self.authenticate()
 
-        url = reverse('instructor-detail', args=[self.instructor.pk])
+        url = reverse('task-detail', args=[self.task_1.pk])
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['education'], self.instructor.education)
+        self.assertEqual(response.data['title'], self.task_1.title)
 
-    def test_update_instructor_with_auth(self):
+    def test_update_task_without_auth(self):
+        url = reverse('task-detail', args=[self.task_1.pk])
+        data = {'title': 'Updated Task 1'}
+        response = self.client.patch(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_update_task_with_auth(self):
         self.authenticate()
 
-        url = reverse('instructor-detail', args=[self.instructor.pk])
-        data = {'education': 'MIT'}
+        url = reverse('task-detail', args=[self.task_1.pk])
+        data = {'title': 'Updated Task 1'}
         response = self.client.patch(url, data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.instructor.refresh_from_db()
-        self.assertEqual(self.instructor.education, data['education'])
+        self.task_1.refresh_from_db()
+        self.assertEqual(self.task_1.title, data['title'])
 
-    def test_delete_instructor_with_auth(self):
+    def test_delete_task_without_auth(self):
+        url = reverse('task-detail', args=[self.task_1.pk])
+        response = self.client.delete(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(Task.objects.count(), 1)
+
+    def test_delete_task_with_auth(self):
         self.authenticate()
 
-        url = reverse('instructor-detail', args=[self.instructor.pk])
+        url = reverse('task-detail', args=[self.task_1.pk])
         response = self.client.delete(url)
         
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(Instructor.objects.count(), 0) 
+        self.assertEqual(Task.objects.count(), 0)
 
 
-class ClientAPITestCase(ModelAPITestCase):
+class ProjectAttachmentAPITestCase(ModelAPITestCase):
+    def setUp(self):
+        super().setUp()
+
+        text_file = SimpleUploadedFile(
+            name='project_file.pdf',
+            content=b'file_content',
+            content_type='application/pdf'
+        )
+
+        self.data = {
+            'name': 'Project File 3',
+            'file': text_file,
+            'comments': 'Additional comments',
+        }
+
+        self.project.attachments.add(self.file_1)
+        self.project.attachments.add(self.file_2)
+
+    def test_create_project_attachment_without_auth(self):
+        url = reverse('projectattachment-list')
+
+        response = self.client.post(url, self.data, format='multipart')
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_create_project_attachment_with_auth(self):
+        self.authenticate()
+
+        initial_count = ProjectAttachment.objects.all().count()
+        response = self.client.post(reverse('projectattachment-list'), self.data, format='multipart')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(ProjectAttachment.objects.all().count(), initial_count + 1)
+
+    def test_list_project_attachments_without_auth(self):
+        url = reverse('projectattachment-list')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_list_project_attachments_with_auth(self):
+        self.authenticate()
+
+        num_attachments = ProjectAttachment.objects.count()
+        url = reverse('projectattachment-list')
+        response = self.client.get(url)
+        print(response.data)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), num_attachments)
+
+    def test_retrieve_project_attachment_without_auth(self):
+        url = reverse('projectattachment-detail', args=[self.file_1.pk])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_retrieve_project_attachment_with_auth(self):
+        self.authenticate()
+
+        url = reverse('projectattachment-detail', args=[self.file_1.pk])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['name'], self.file_1.name)
+
+    def test_update_project_attachment_without_auth(self):
+        url = reverse('projectattachment-detail', args=[self.file_1.pk])
+        data = {'name': 'Updated Project File 1'}
+        response = self.client.patch(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_update_project_attachment_with_auth(self):
+        self.authenticate()
+
+        url = reverse('projectattachment-detail', args=[self.file_1.pk])
+        data = {'name': 'Updated Project File 1'}
+        response = self.client.patch(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.file_1.refresh_from_db()
+        self.assertEqual(self.file_1.name, data['name'])
+
+    def test_delete_project_attachment_without_auth(self):
+        url = reverse('projectattachment-detail', args=[self.file_1.pk])
+        response = self.client.delete(url)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertTrue(ProjectAttachment.objects.filter(pk=self.file_1.pk).exists())
+
+    def test_delete_project_attachment_with_auth(self):
+        self.authenticate()
+        url = reverse('projectattachment-detail', args=[self.file_1.id])
+        response = self.client.delete(url)
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(ProjectAttachment.objects.filter(id=self.file_1.id).exists())
+
+
+class TagAPITestCase(ModelAPITestCase):
     def setUp(self):
         super().setUp()
 
         self.data = {
-            'client': self.client_user_2.id,
-            'company_name': 'Teckinia',
-            'industry': 'Ecommerce',
+            'name': 'Advanced',
         }
 
-    # TEST THE SEARCH FUNCTIONALITY
-
-    def test_create_client_without_auth(self):
-        url = reverse('client-list')
+    def test_create_tags_without_auth(self):
+        url = reverse('tag-list')
         
-        initial_count = Client.objects.all().count()
+        initial_count = Tag.objects.all().count()
         response = self.client.post(url, self.data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertEqual(Client.objects.all().count(), initial_count)
+        self.assertEqual(Tag.objects.all().count(), initial_count)
 
-    def test_create_client_with_auth(self):
+    def test_create_tags_with_auth(self):
         self.authenticate()
 
-        initial_count = Client.objects.all().count()
-        response = self.client.post(reverse('client-list'), self.data, format='json')
+        initial_count = Tag.objects.all().count()
+        response = self.client.post(reverse('tag-list'), self.data, format='json')
         
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Client.objects.all().count(), initial_count + 1)
+        self.assertEqual(Tag.objects.all().count(), initial_count + 1)
 
-    def test_list_clients_without_auth(self):
-        url = reverse('client-list')
-        response = self.client.get(url)
-
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        
-    def test_list_clients_with_auth(self):
-        self.authenticate()
-
-        url = reverse('client-list')
+    def test_list_tags_without_auth(self):
+        url = reverse('tag-list')
         response = self.client.get(url)
         response_data_dict = response.data['results']
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response_data_dict), 1)
-        self.assertEqual(response_data_dict[0]['company_name'], self.clientele.company_name)
+        self.assertEqual(response_data_dict[0]['name'], self.tag.name)
 
-    def test_retrieve_client_without_auth(self):
-        url = reverse('client-detail', args=[self.clientele.pk])
-        response = self.client.get(url)
-
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        
-    def test_retrieve_client_with_auth(self):
-        self.authenticate()
-
-        url = reverse('client-detail', args=[self.clientele.pk])
+    def test_retrieve_tag(self):
+        url = reverse('tag-detail', args=[self.tag.pk])
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['company_name'], self.clientele.company_name)
+        self.assertEqual(response.data['name'], self.tag.name)
 
-    def test_update_client_with_auth(self):
+    def test_update_tag_with_auth(self):
         self.authenticate()
 
-        url = reverse('client-detail', args=[self.clientele.pk])
-        data = {'company_name': 'Teknon'}
+        url = reverse('tag-detail', args=[self.tag.pk])
+        data = {'name': 'Blockchain'}
         response = self.client.patch(url, data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.clientele.refresh_from_db()
-        self.assertEqual(self.clientele.company_name, data['company_name'])
+        self.tag.refresh_from_db()
+        self.assertEqual(self.tag.name, data['name'])
 
-    def test_delete_client_with_auth(self):
+    def test_delete_tag_with_auth(self):
         self.authenticate()
 
-        url = reverse('client-detail', args=[self.clientele.pk])
+        url = reverse('tag-detail', args=[self.tag.pk])
         response = self.client.delete(url)
         
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(Client.objects.count(), 0) 
+        self.assertEqual(Tag.objects.count(), 1) 
+
+
+class ActivityAPITestCase(ModelAPITestCase):
+    def setUp(self):
+        super().setUp()
+        
+        self.data = {
+            'user': self.admin_user.id,
+            'project': self.project.id,
+            'task': self.task_1.id,
+            'activity_type': 'created_task',
+        }
+
+    def test_create_activity_without_auth(self):
+        url = reverse('activity-list')
+        
+        initial_count = Activity.objects.all().count()
+        response = self.client.post(url, self.data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(Activity.objects.all().count(), initial_count)
+
+    def test_create_activity_with_auth(self):
+        self.authenticate()
+
+        initial_count = Activity.objects.all().count()
+        response = self.client.post(reverse('activity-list'), self.data, format='json')
+        
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Activity.objects.all().count(), initial_count + 1)
+
+    def test_list_activities_without_auth(self):
+        url = reverse('activity-list')
+        response = self.client.get(url)
+        response_data_dict = response.data['results']
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response_data_dict), 1)
+        self.assertEqual(response_data_dict[0]['activity_type'], self.data['activity_type'])
+
+    def test_retrieve_activity(self):
+        url = reverse('activity-detail', args=[self.activity.pk])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['activity_type'], self.activity.activity_type)
+
+    def test_update_activity_with_auth(self):
+        self.authenticate()
+
+        url = reverse('activity-detail', args=[self.activity.pk])
+        data = {'activity_type': 'updated_task'}
+        response = self.client.patch(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.activity.refresh_from_db()
+        self.assertEqual(self.activity.activity_type, data['activity_type'])
+
+    def test_delete_activity_with_auth(self):
+        self.authenticate()
+
+        url = reverse('activity-detail', args=[self.activity.pk])
+        response = self.client.delete(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Activity.objects.count(), 0)

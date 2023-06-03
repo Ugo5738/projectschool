@@ -99,13 +99,12 @@ class StudentAPITestCase(ModelAPITestCase):
     def test_list_students_without_auth(self):
         url = reverse('student-list')
         response = self.client.get(url)
-        response_data_dict = response.data['results']
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response_data_dict), 1)
-        self.assertEqual(response_data_dict[0]['learning_style'], self.student.learning_style)    
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_retrieve_student(self):
+        self.authenticate()
+        
         url = reverse('student-detail', args=[self.student.pk])
         response = self.client.get(url)
 
@@ -300,3 +299,7 @@ class ClientAPITestCase(ModelAPITestCase):
         
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Client.objects.count(), 0) 
+
+
+# Didn't write a test view case for ReferralAPITestCase 
+# because if assumes the same process as the test views above

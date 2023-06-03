@@ -1,5 +1,3 @@
-import datetime
-
 from accounts.models import User
 from course.models import (Answer, Course, CourseContent, CourseDetails,
                            CourseMetadata, Enrollment, File, Lesson, Module,
@@ -319,7 +317,6 @@ class QuizAPITestCase(ModelAPITestCase):
 
         url = reverse('quiz-list')
         response = self.client.get(url)
-        print(response.data)
         response_data_dict = response.data['results']
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)

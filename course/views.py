@@ -59,6 +59,7 @@ class QuizViewSet(viewsets.ModelViewSet):
     queryset = Quiz.objects.all()
     serializer_class = QuizSerializer
     permission_classes = [IsAuthenticated]
+    ordering = ['id']
 
 
 class AnswerViewSet(viewsets.ModelViewSet):
@@ -69,6 +70,7 @@ class AnswerViewSet(viewsets.ModelViewSet):
     serializer_class = AnswerSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = CustomPageNumberPagination
+    ordering = ['id']
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
     filterset_fields = ['id']
@@ -84,6 +86,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
     serializer_class = QuestionSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = CustomPageNumberPagination
+    ordering = ['id']
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
     filterset_fields = ['id']
