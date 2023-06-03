@@ -7,6 +7,7 @@ from project.serializers import (ActivitySerializer,
                                  ProjectSerializer, TagSerializer,
                                  TaskSerializer, TechSkillSerializer)
 from rest_framework import filters, viewsets
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import (IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 
@@ -27,21 +28,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
     ordering_fields = ['id']
 
 
-class ProjectAttachmentViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint that allows project attachments to be viewed, edited and searched.
-    """
-    queryset = ProjectAttachment.objects.all()
-    serializer_class = ProjectAttachmentSerializer
-    pagination_class = CustomPageNumberPagination
-    ordering = ['id']
-    permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-
-    filterset_fields = ['id']
-    search_fields = ['id']
-    ordering_fields = ['id']
-
 
 class TagViewSet(viewsets.ModelViewSet):
     """
@@ -49,7 +35,7 @@ class TagViewSet(viewsets.ModelViewSet):
     """
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    pagination_class = CustomPageNumberPagination
+    # pagination_class = CustomPageNumberPagination
     ordering = ['id']
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -105,3 +91,27 @@ class ActivityViewSet(viewsets.ModelViewSet):
     filterset_fields = ['id']
     search_fields = ['id']
     ordering_fields = ['id']
+
+
+class ProjectAttachmentCustomPageNumberPagination(PageNumberPagination):
+    page_size = 10  # Number of project attachments per page
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
+class ProjectAttachmentViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows project attachments to be viewed, edited and searched.
+    """
+    queryset = ProjectAttachment.objects.all()
+    serializer_class = ProjectAttachmentSerializer
+    # pagination_class = ProjectAttachmentCustomPageNumberPagination
+    ordering = ['id']
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+
+    filterset_fields = ['id']
+    search_fields = ['id']
+    ordering_fields = ['id']
+
+

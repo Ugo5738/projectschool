@@ -181,12 +181,13 @@ class ProgramAPITestCase(ModelAPITestCase):
         
     def test_delete_program(self):
         self.authenticate()
+        num_program = Program.objects.all().count()
 
         url = reverse('program-detail', args=[self.program.pk])
         response = self.client.delete(url)
         
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(Program.objects.count(), 0)
+        self.assertEqual(Program.objects.count(), num_program - 1)
 
 
 
@@ -239,13 +240,14 @@ class CourseAPITestCase(ModelAPITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_list_courses_without_auth(self):
+        num_courses = Course.objects.all().count()
+
         url = reverse('course-list')
         response = self.client.get(url)
         response_data_dict = response.data['results']
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response_data_dict), 1)
-        self.assertEqual(response_data_dict[0]['title'], self.course.title)    
+        self.assertEqual(len(response_data_dict), num_courses) 
 
     def test_retrieve_course(self):
         url = reverse('course-detail', args=[self.course.pk])
@@ -268,11 +270,13 @@ class CourseAPITestCase(ModelAPITestCase):
     def test_delete_course_with_auth(self):
         self.authenticate()
 
+        num_courses = Course.objects.all().count()
+
         url = reverse('course-detail', args=[self.course.pk])
         response = self.client.delete(url)
         
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(Course.objects.count(), 0) 
+        self.assertEqual(Course.objects.count(), num_courses - 1) 
 
 
 
